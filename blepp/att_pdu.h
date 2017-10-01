@@ -69,6 +69,7 @@ namespace BLEPP
 
 			const uint8_t* data; //Pointer to the underlying data
 			int length;          //Length of the underlying data
+                        bool own_pdu = false;
 
 			//Utility function to return a uint8 at byte offset i;
 			uint8_t uint8(int i) const
@@ -89,6 +90,22 @@ namespace BLEPP
 			{
 			}
 
+			PDUResponse(const PDUResponse & other)
+			{
+                            // need to take copy of the PDU
+                            own_pdu = true;
+                            length = other.length;
+                            data = (const uint8_t*)malloc(length);
+                            memcpy((void*)data,(const void *)other.data,length);
+			}
+
+                        ~PDUResponse()
+                        {
+                            if (own_pdu) {
+                                free((void *)data);
+                                data = nullptr;
+                            }
+                        }
 			//Table 3.1: type field is the low 6 bits.
 			//The command flag is bit 6 and the authentication
 			//flag is bit 7.
@@ -120,6 +137,8 @@ namespace BLEPP
 				type_check(ATT_OP_ERROR);
 			}
 
+                        virtual ~PDUErrorResponse() {}
+
 			uint8_t request_opcode() const
 			{
 				return uint8(1);
@@ -149,6 +168,7 @@ namespace BLEPP
 			{
 				type_check(ATT_OP_READ_RESP);
 			}
+                        virtual ~PDUReadResponse () { }
 			uint8_t request_opcode() const
 			{
 				return uint8(1);
@@ -179,7 +199,7 @@ namespace BLEPP
 				if((length - 2) % element_size() != 0)
 					error<std::runtime_error>("Invalid packet length for PDUReadByTypeResponse");
 			}
-
+                        virtual ~PDUReadByTypeResponse() {}
 
 			//Size of each element in the response
 			int element_size() const
@@ -235,6 +255,7 @@ namespace BLEPP
 					error<std::runtime_error>("Invalid packet length for PDUReadGroupByTypeResponse");
 
 			}
+                        virtual ~PDUReadGroupByTypeResponse () { }
 
 			int value_size() const
 			{
@@ -287,6 +308,7 @@ namespace BLEPP
 				if( (length-2) % element_size())
 					error<std::runtime_error>("Invalid packet length for PDUReadGroupByTypeResponse");
 			}
+                        virtual ~PDUFindInformationResponse() {}
 
 			bool is_16_bit() const
 			{
@@ -329,6 +351,7 @@ namespace BLEPP
 				if(type() != ATT_OP_HANDLE_NOTIFY && type() != ATT_OP_HANDLE_IND)
 					error<std::logic_error>(std::string("Error converting PDUResponse to NotifyOrIndicate. Type is ") + att_op2str(type()));
 			}
+                        virtual ~PDUNotificationOrIndication () { }
 
 			bool notification() const
 			{
